@@ -47,7 +47,7 @@ jobs:
           zig build -Doptimize=ReleaseSmall -Dversion=${{ steps.get_version.outputs.version_no_v }}
 
       - name: Setup NSIS
-        uses: joncloud/makensis-action@v2
+        uses: joncloud/makensis-action@v5.0
         with:
           script-path: "${{ github.workspace }}/installer/installer.nsi"
           arguments: "/V2"
