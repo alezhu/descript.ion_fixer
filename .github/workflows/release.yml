@@ -14,7 +14,7 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -38,6 +38,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "version_no_v=$VERSION_NO_V" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
+          echo "Version no v: $VERSION_NO_V"
 
       - name: Build ReleaseSmall
         shell: bash
@@ -62,7 +63,7 @@ jobs:
         uses: joncloud/makensis-action@v5.0
         with:
           script-file: "${{ github.workspace }}/installer/installer.nsi"
-          additional-plugin-paths: ${{ github.workspace }}/NSIS_Plugins/Plugins          
+          additional-plugin-paths: ${{ github.workspace }}/NSIS_Plugins/Plugins
           arguments: "/V2 -DVERSION=${{ steps.get_version.outputs.version_no_v }}"
 
       - name: Upload executable artifact
@@ -71,17 +72,13 @@ jobs:
           name: descript.ion_fixer-${{ steps.get_version.outputs.version }}-windows-x64
           path: zig-out/bin/descript.ion_fixer.exe
 
-      - name: Create ZIP archive
-        shell: bash
-        run: |
-          cd zig-out/bin
-          7z a -tzip ../../descript.ion_fixer-${{ steps.get_version.outputs.version }}-windows-x64.zip descript.ion_fixer.exe
-
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: descript.ion_fixer-${{ steps.get_version.outputs.version }}-installer.exe
+          name: descript.ion_fixer-${{ steps.get_version.outputs.version }}-installer
           path: installer/descript.ion_fixer_${{ steps.get_version.outputs.version_no_v }}_installer.exe
+          compression-level: none
+
 
   create-release:
     needs: build-windows
@@ -98,7 +95,7 @@ jobs:
       - name: Download installer artifact
         uses: actions/download-artifact@v4
         with:
-          name: descript.ion_fixer-${{ github.ref_name }}-installer.exe
+          name: descript.ion_fixer-${{ github.ref_name }}-installer
           path: ./artifacts
 
       - name: Create ZIP archive for executable
@@ -113,7 +110,7 @@ jobs:
         with:
           files: |
             ./artifacts/descript.ion_fixer-${{ github.ref_name }}-windows-x64.zip
-            ./artifacts/descript.ion_fixer-${{ github.ref_name }}-installer.exe
+            ./artifacts/descript.ion_fixer_${{ github.ref_name }}_installer.exe
           generate_release_notes: true
           draft: false
           prerelease: false
