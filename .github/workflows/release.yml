@@ -43,7 +43,6 @@ jobs:
       - name: Build ReleaseSmall
         shell: bash
         run: |
-          cp installer/icon.ico icon.ico
           zig build -Doptimize=ReleaseSmall -Dversion=${{ steps.get_version.outputs.version_no_v }}
 
       - name: Setup NSIS
