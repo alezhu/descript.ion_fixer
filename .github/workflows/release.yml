@@ -33,17 +33,13 @@ jobs:
           else
             VERSION="${{ github.ref_name }}"
           fi
-          # Remove 'v' prefix for zig build option
-          VERSION_NO_V="${VERSION#v}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "version_no_v=$VERSION_NO_V" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
-          echo "Version no v: $VERSION_NO_V"
 
       - name: Build ReleaseSmall
         shell: bash
         run: |
-          zig build -Doptimize=ReleaseSmall -Dversion=${{ steps.get_version.outputs.version_no_v }}
+          zig build -Doptimize=ReleaseSmall -Dversion=${{ steps.get_version.outputs.version }}
 
 
       - name: Download EnVar plugin for NSIS
@@ -64,7 +60,7 @@ jobs:
         with:
           script-file: "${{ github.workspace }}/installer/installer.nsi"
           additional-plugin-paths: ${{ github.workspace }}/NSIS_Plugins/Plugins
-          arguments: "/V2 -DVERSION=${{ steps.get_version.outputs.version_no_v }}"
+          arguments: "/V2 -DVERSION=${{ steps.get_version.outputs.version }}"
 
       - name: Upload executable artifact
         uses: actions/upload-artifact@v4
@@ -76,43 +72,55 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: descript.ion_fixer-${{ steps.get_version.outputs.version }}-installer
-          path: installer/descript.ion_fixer_${{ steps.get_version.outputs.version_no_v }}_installer.exe
-          compression-level: none
+          path: installer/descript.ion_fixer_${{ steps.get_version.outputs.version }}_installer.exe
 
 
   create-release:
     needs: build-windows
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
 
     steps:
+      - name: Get version from tag
+        id: get_version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${{ github.ref_name }}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+
       - name: Download executable artifact
         uses: actions/download-artifact@v4
         with:
-          name: descript.ion_fixer-${{ github.ref_name }}-windows-x64
+          name: descript.ion_fixer-${{ steps.get_version.outputs.version }}-windows-x64
           path: ./artifacts
 
       - name: Download installer artifact
         uses: actions/download-artifact@v4
         with:
-          name: descript.ion_fixer-${{ github.ref_name }}-installer
+          name: descript.ion_fixer-${{ steps.get_version.outputs.version }}-installer
           path: ./artifacts
 
       - name: Create ZIP archive for executable
         shell: bash
         run: |
           cd artifacts
-          zip descript.ion_fixer-${{ github.ref_name }}-windows-x64.zip descript.ion_fixer.exe
+          zip descript.ion_fixer-${{ steps.get_version.outputs.version }}-windows-x64.zip descript.ion_fixer.exe
           rm descript.ion_fixer.exe
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ./artifacts/descript.ion_fixer-${{ github.ref_name }}-windows-x64.zip
-            ./artifacts/descript.ion_fixer_${{ github.ref_name }}_installer.exe
+            ./artifacts/descript.ion_fixer-${{ steps.get_version.outputs.version }}-windows-x64.zip
+            ./artifacts/descript.ion_fixer_${{ steps.get_version.outputs.version }}_installer.exe
           generate_release_notes: true
           draft: false
           prerelease: false
+          tag_name: ${{ steps.get_version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
